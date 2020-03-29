@@ -14,10 +14,9 @@ var count int64
 
 // consul 服务端会自己发送请求，来进行健康检查
 func consulCheck(w http.ResponseWriter, r *http.Request) {
-
 	s := "consulCheck" + fmt.Sprint(count) + "remote:" + r.RemoteAddr + " " + r.URL.String()
 	fmt.Println(s)
-	fmt.Fprintln(w, s)
+	_, _ = fmt.Fprintln(w, s)
 	count++
 }
 
@@ -29,7 +28,8 @@ func registerServer() {
 		log.Fatal("consul client error : ", err)
 	}
 
-	registration := new(consulapi.AgentServiceRegistration)
+	var registration consulapi.AgentServiceRegistration
+	// registration := new(consulapi.AgentServiceRegistration)
 	registration.ID = "serverNode_1"      // 服务节点的名称
 	registration.Name = "serverNode"      // 服务名称
 	registration.Port = 9527              // 服务端口
@@ -45,24 +45,27 @@ func registerServer() {
 		// GRPC:     fmt.Sprintf("%v:%v/%v", IP, r.Port, r.Service),// grpc 支持，执行健康检查的地址，service 会传到 Health.Check 函数中
 	}
 
-	err = client.Agent().ServiceRegister(registration)
+	err = client.Agent().ServiceRegister(&registration)
 	if err != nil {
 		log.Fatal("register server error : ", err)
 	}
 
 	http.HandleFunc("/check", consulCheck)
-	http.ListenAndServe(fmt.Sprintf(":%d", checkPort), nil)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", checkPort), nil)
+	if err != nil {
+		log.Fatal("register server error : ", err)
+	}
 }
 
 func localIP() string {
-	addrs, err := net.InterfaceAddrs()
+	address, err := net.InterfaceAddrs()
 	if err != nil {
 		return ""
 	}
-	for _, address := range addrs {
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String()
+	for _, addr := range address {
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+			if ipNet.IP.To4() != nil {
+				return ipNet.IP.String()
 			}
 		}
 	}
