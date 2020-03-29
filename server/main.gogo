@@ -1,0 +1,80 @@
+package main
+
+import (
+	"context"
+	"github.com/micro/go-micro"
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-plugins/registry/consul"
+	_ "github.com/micro/go-plugins/transport/nats"
+	Tpk "goconsul/protos"
+	"log"
+	"time"
+)
+
+type Greeter struct {
+}
+
+func (h *Greeter) Ping(ctx context.Context, req *Tpk.HelloRequest, rep *Tpk.HelloResponse) error {
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+		log.Printf("%+v", req)
+		rep.Greeting = "Hello " + req.Name
+	}
+	return nil
+}
+
+func main() {
+	// consul插件
+	consulRegistry := consul.NewRegistry(func(op *registry.Options) {
+		op.Addrs = []string{
+			"192.168.0.102:8500",
+		}
+	})
+
+	go func() {
+		service := micro.NewService(
+			micro.Name("go.micro.srv.greeter"),
+			micro.Version("latest"),
+			// micro.Metadata(map[string]string{
+			// 	"type": "greeter",
+			// }),
+			micro.Registry(consulRegistry),
+			micro.RegisterInterval(time.Second*time.Duration(20)),
+			micro.RegisterTTL(time.Second*time.Duration(30)),
+			micro.Address("192.168.0.102:8000"),
+			// micro.Transport(nats.NewTransport()),
+		)
+
+		service.Init()
+
+		Tpk.RegisterGreeterHandler(service.Server(), &Greeter{})
+
+		if err := service.Run(); err != nil {
+			log.Panic(err)
+		}
+	}()
+
+	go func() {
+		// ginRouter := gin.Default()
+		// ginRouter.GET("/user", func(c *gin.Context) {
+		// 	c.String(200, "user api")
+		// })
+		// ginRouter.GET("/news", func(c *gin.Context) {
+		// 	c.String(200, "news api")
+		// })
+		// service := web.NewService(
+		// 	web.Name("webService"),       // 注册进consul服务中的service名字
+		// 	web.Address(":8001"),         // 注册进consul服务中的端口
+		// 	web.Handler(ginRouter),       // web.Handler()返回一个Option，我们直接把ginRouter穿进去，就可以和gin完美的结合
+		// 	web.Registry(consulRegistry), // 注册到哪个服务器伤的consul中
+		// )
+		//
+		// if err := service.Run(); err != nil {
+		// 	log.Panic(err)
+		// }
+	}()
+
+	select {}
+}

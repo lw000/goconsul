@@ -1,8 +1,8 @@
 set prjPath=%cd%
 echo %prjPath%
-cd ../../../../
+cd ../../../
 set GOPATH=%cd%
 set GOARCH=amd64
-set GOOS=linux
+set GOOS=windows
 cd %prjPath%
 go build -v -ldflags="-s -w"

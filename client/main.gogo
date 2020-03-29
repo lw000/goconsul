@@ -1,20 +1,29 @@
 package main
 
 import (
-	"demo/goconsul/protos"
 	"github.com/micro/go-micro"
+	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-plugins/registry/consul"
+	Tpk "goconsul/protos"
 	"golang.org/x/net/context"
 	"log"
 )
 
 func main() {
+	consulRegistry := consul.NewRegistry(func(op *registry.Options) {
+		op.Addrs = []string{
+			"192.168.0.102:8500",
+		}
+	})
+
 	service := micro.NewService(
-		micro.Name("greeter.client"),
+		micro.Name("go.micro.srv.greeter"),
 		micro.Version("latest"),
-		micro.Metadata(map[string]string{
-			"type": "greeter",
-		}),
-		// micro.Address("192.168.1.201"),
+		micro.Registry(consulRegistry),
+		// micro.Metadata(map[string]string{
+		// 	"type": "greeter",
+		// }),
+		// micro.Address("192.168.0.102:8000"),
 	)
 
 	service.Init()
