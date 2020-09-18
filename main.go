@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"sync"
+	"time"
 )
 
 // 抽象观察者
@@ -25,6 +27,7 @@ type Observer struct {
 }
 
 func (o *Observer) Notify() {
+	time.Sleep(time.Second * time.Duration(rand.Intn(5)))
 	log.Println("notify:", o.Name)
 }
 
@@ -68,7 +71,7 @@ func main() {
 	if err := s.Start(); err != nil {
 		log.Fatal(err)
 	}
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 1000; i++ {
 		s.AddObservers(&Observer{fmt.Sprintf("%d", i)})
 	}
 	s.NotifyObservers()
